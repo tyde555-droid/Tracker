@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stack It — Income Splitter</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f0e8;
+    --surface: #faf7f2;
+    --surface2: #ede8df;
+    --border: #ddd8ce;
+    --text: #1a1a18;
+    --muted: #9a9488;
+    --accent: #2a6e3f;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  .logo {
+    font-family: var(--font-head);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  h1 {
+    font-family: var(--font-head);
+    font-size: clamp(36px, 8vw, 60px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 40px;
+  }
+
+  /* Input */
+  .input-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .input-section::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), #4ade80);
+  }
+
+  .input-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .amount-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .currency-symbol {
+    font-family: var(--font-head);
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  #income {
+    font-family: var(--font-head);
+    font-size: clamp(32px, 7vw, 52px);
+    font-weight: 800;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    outline: none;
+    width: 100%;
+    letter-spacing: -0.02em;
+    caret-color: var(--accent);
+  }
+
+  #income::placeholder { color: var(--border); }
+
+  /* Tax lock */
+  .tax-section {
+    background: #1a4a2a;
+    border: 1px solid #0f3020;
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tax-section::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: #4ade80;
+  }
+
+  .tax-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .tax-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .lock-icon {
+    font-size: 16px;
+  }
+
+  .tax-name {
+    font-family: var(--font-head);
+    font-size: 15px;
+    font-weight: 700;
+    color: #c8f564;
+    letter-spacing: 0.02em;
+  }
+
+  .tax-badge {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(200,245,100,0.15);
+    color: #c8f564;
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  .tax-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+
+  .tax-pct-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .tax-pct-input {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: #a0d4b0;
+    padding: 4px 8px;
+    width: 52px;
+    text-align: right;
+    outline: none;
+  }
+
+  .tax-pct-symbol { font-size: 12px; color: #a0d4b0; }
+
+  .tax-amount {
+    font-family: var(--font-head);
+    font-size: 26px;
+    font-weight: 800;
+    color: #c8f564;
+    letter-spacing: -0.02em;
+  }
+
+  .tax-note {
+    font-size: 11px;
+    color: #5a9470;
+    margin-top: 6px;
+    letter-spacing: 0.03em;
+  }
+
+  /* Remaining banner */
+  .remaining-banner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .remaining-label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .remaining-amount {
+    font-family: var(--font-head);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    transition: all 0.3s ease;
+  }
+
+  /* Still to move banner */
+  .still-banner {
+    background: var(--accent);
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .still-label {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .still-amount {
+    font-family: var(--font-head);
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+    transition: all 0.3s ease;
+  }
+
+  /* Buckets */
+  .buckets { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+
+  .bucket {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 22px;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .bucket:hover { border-color: #c8c3ba; }
+
+  .bucket.done {
+    opacity: 0.5;
+    background: var(--surface2);
+  }
+
+  .bucket.done .bucket-name {
+    text-decoration: line-through;
+  }
+
+  .bucket-accent {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 14px 0 0 14px;
+  }
+
+  .bucket-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .bucket-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .bucket-icon { font-size: 18px; }
+
+  .bucket-name {
+    font-family: var(--font-head);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .bucket-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pct-wrapper { display: flex; align-items: center; gap: 3px; }
+
+  .pct-input {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    padding: 4px 8px;
+    width: 52px;
+    text-align: right;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .pct-input:focus { border-color: #aaa; color: var(--text); }
+
+  .pct-sym { font-size: 12px; color: var(--muted); }
+
+  .bucket-amount {
+    font-family: var(--font-head);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    min-width: 100px;
+    text-align: right;
+    transition: all 0.3s ease;
+  }
+
+  .check-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    color: transparent;
+  }
+
+  .bucket:not(.done) .check-btn:hover {
+    border-color: var(--accent);
+    background: rgba(42,110,63,0.1);
+  }
+
+  .bucket.done .check-btn {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* invest growth */
+  .invest-growth {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border-left: 2px solid #1D9E75;
+    margin-left: 28px;
+    display: none;
+  }
+
+  .invest-growth.visible { display: block; }
+
+  .invest-growth-title {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #1D9E75;
+    margin-bottom: 4px;
+  }
+
+  .invest-growth-number {
+    font-family: var(--font-head);
+    font-size: 18px;
+    font-weight: 700;
+    color: #1D9E75;
+    letter-spacing: -0.02em;
+  }
+
+  .invest-growth-note { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* pct warning */
+  .pct-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0 4px;
+  }
+
+  .pct-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .pct-val { font-size: 13px; font-weight: 500; }
+  .pct-ok { color: #2a6e3f; }
+  .pct-warn { color: #f59e0b; }
+  .pct-over { color: #e24b4a; }
+
+  .warn-msg {
+    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: none;
+    margin-bottom: 12px;
+  }
+  .warn-msg.show { display: block; }
+  .warn-msg.over { background: rgba(226,75,74,0.08); color: #e24b4a; }
+  .warn-msg.under { background: rgba(245,158,11,0.08); color: #f59e0b; }
+
+  /* save */
+  .save-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    border-radius: 12px;
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    margin-top: 8px;
+  }
+
+  .save-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .save-btn:active { transform: translateY(0); }
+
+  .save-confirm {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 10px;
+    height: 16px;
+    letter-spacing: 0.05em;
+  }
+
+  .reset-btn {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 10px;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover { border-color: #aaa; color: var(--text); }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), #4ade80);
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 40px;
+    letter-spacing: 0.1em;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  .popped { animation: pop 0.2s ease; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="logo">Stack It</div>
+  <h1>Split your<br><span>income.</span></h1>
+  <p class="subtitle">Tax locks first. Then allocate the rest.</p>
+
+  <!-- Income input -->
+  <div class="input-section">
+    <div class="input-label">Amount received (USD)</div>
+    <div class="amount-wrapper">
+      <span class="currency-symbol">$</span>
+      <input type="number" id="income" placeholder="0" min="0" oninput="calc()" />
+    </div>
+  </div>
+
+  <!-- Tax lock -->
+  <div class="tax-section">
+    <div class="tax-header">
+      <div class="tax-left">
+        <span class="lock-icon">🔒</span>
+        <span class="tax-name">Tax Reserve</span>
+      </div>
+      <span class="tax-badge">Locked first</span>
+    </div>
+    <div class="tax-row">
+      <div class="tax-pct-wrapper">
+        <input class="tax-pct-input" id="p-tax" type="number" value="20" min="0" max="100" oninput="calc()" />
+        <span class="tax-pct-symbol">%</span>
+      </div>
+      <span class="tax-amount" id="b-tax">—</span>
+    </div>
+    <div class="tax-note">Set aside before anything else — every single time.</div>
+  </div>
+
+  <!-- Remaining after tax -->
+  <div class="remaining-banner">
+    <span class="remaining-label">Remaining after tax</span>
+    <span class="remaining-amount" id="after-tax">—</span>
+  </div>
+
+  <!-- Buckets -->
+  <div class="buckets" id="buckets-container"></div>
+
+  <!-- Still to move -->
+  <div class="still-banner">
+    <span class="still-label">Still to move</span>
+    <span class="still-amount" id="still-to-move">—</span>
+  </div>
+
+  <!-- Pct check -->
+  <div class="pct-row">
+    <span class="pct-label">Bucket percentages</span>
+    <span class="pct-val pct-ok" id="pct-display">—</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <div class="warn-msg" id="warn-msg"></div>
+
+  <button class="save-btn" onclick="saveSettings()">Save My Settings</button>
+  <div class="save-confirm" id="save-confirm"></div>
+  <button class="reset-btn" onclick="resetChecks()">↺ Reset all checkboxes</button>
+
+  <div class="footer">Stack It · Tax first, always.</div>
+</div>
+
+<script>
+const BUCKETS = [
+  { id: 'everyday',  name: 'Everyday',     icon: '💳', color: '#378ADD', defaultPct: 15 },
+  { id: 'invest',    name: 'Investment',   icon: '📈', color: '#1D9E75', defaultPct: 30, growth: true },
+  { id: 'fun',       name: 'Fun Money',    icon: '✈️', color: '#7F77DD', defaultPct: 10 },
+  { id: 'rent',      name: 'Rent & Bills', icon: '🏠', color: '#EF9F27', defaultPct: 25 },
+  { id: 'emergency', name: 'Emergency',    icon: '🛡️', color: '#888780', defaultPct: 10 },
+  { id: 'business',  name: 'Business',     icon: '💼', color: '#D85A30', defaultPct: 10 },
+];
+
+function load() {
+  try { return JSON.parse(localStorage.getItem('stackit_v2') || '{}'); } catch(e) { return {}; }
+}
+
+function save(data) {
+  try { localStorage.setItem('stackit_v2', JSON.stringify(data)); } catch(e) {}
+}
+
+function fmt(n) {
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+
+function renderBuckets() {
+  const saved = load();
+  const container = document.getElementById('buckets-container');
+  container.innerHTML = '';
+
+  BUCKETS.forEach(b => {
+    const pct = saved['pct_' + b.id] !== undefined ? saved['pct_' + b.id] : b.defaultPct;
+    const checked = saved['chk_' + b.id] || false;
+
+    const div = document.createElement('div');
+    div.className = 'bucket' + (checked ? ' done' : '');
+    div.id = 'bucket-' + b.id;
+
+    div.innerHTML = `
+      <div class="bucket-accent" style="background:${b.color}"></div>
+      <div class="bucket-main">
+        <div class="bucket-left">
+          <span class="bucket-icon">${b.icon}</span>
+          <span class="bucket-name">${b.name}</span>
+        </div>
+        <div class="bucket-right">
+          <div class="pct-wrapper">
+            <input class="pct-input" id="p-${b.id}" type="number" value="${pct}" min="0" max="100"
+              oninput="calc()" onclick="event.stopPropagation()" />
+            <span class="pct-sym">%</span>
+          </div>
+          <div class="bucket-amount" id="b-${b.id}" style="color:${b.color}">—</div>
+          <button class="check-btn" id="chk-${b.id}" onclick="toggleCheck('${b.id}', event)">✓</button>
+        </div>
+      </div>
+      ${b.growth ? `
+      <div class="invest-growth" id="growth-block">
+        <div class="invest-growth-title">30-yr growth @ 8% avg return</div>
+        <div class="invest-growth-number" id="growth-value">—</div>
+        <div class="invest-growth-note">Invested today in a broad market index fund</div>
+      </div>` : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+function toggleCheck(id, e) {
+  e.stopPropagation();
+  const saved = load();
+  saved['chk_' + id] = !saved['chk_' + id];
+  save(saved);
+  const bucket = document.getElementById('bucket-' + id);
+  bucket.classList.toggle('done', saved['chk_' + id]);
+  calc();
+}
+
+function resetChecks() {
+  const saved = load();
+  BUCKETS.forEach(b => { saved['chk_' + b.id] = false; });
+  save(saved);
+  BUCKETS.forEach(b => {
+    document.getElementById('bucket-' + b.id).classList.remove('done');
+  });
+  calc();
+}
+
+function calc() {
+  const income = parseFloat(document.getElementById('income').value) || 0;
+  const taxPct = parseFloat(document.getElementById('p-tax').value) || 0;
+  const taxAmt = income * taxPct / 100;
+  const afterTax = income - taxAmt;
+
+  document.getElementById('b-tax').textContent = income ? fmt(taxAmt) : '—';
+  document.getElementById('after-tax').textContent = income ? fmt(afterTax) : '—';
+
+  const saved = load();
+  let totalBucketPct = 0;
+  let stillToMove = afterTax;
+
+  BUCKETS.forEach(b => {
+    const pct = parseFloat(document.getElementById('p-' + b.id).value) || 0;
+    totalBucketPct += pct;
+    const amt = afterTax * pct / 100;
+    const el = document.getElementById('b-' + b.id);
+    const next = income ? fmt(amt) : '—';
+    if (el.textContent !== next) {
+      el.textContent = next;
+      el.classList.remove('popped');
+      void el.offsetWidth;
+      el.classList.add('popped');
+    }
+
+    // Deduct checked buckets from still-to-move
+    if (saved['chk_' + b.id]) {
+      stillToMove -= amt;
+    }
+
+    // Investment growth
+    if (b.growth) {
+      const block = document.getElementById('growth-block');
+      const gv = document.getElementById('growth-value');
+      if (income && amt > 0) {
+        block.classList.add('visible');
+        gv.textContent = fmt(amt * Math.pow(1.08, 30));
+      } else {
+        block.classList.remove('visible');
+      }
+    }
+  });
+
+  // Still to move
+  const stillEl = document.getElementById('still-to-move');
+  stillEl.textContent = income ? fmt(Math.max(0, stillToMove)) : '—';
+
+  // Pct display
+  const rounded = Math.round(totalBucketPct);
+  const pctEl = document.getElementById('pct-display');
+  const fill = document.getElementById('progress-fill');
+  const warn = document.getElementById('warn-msg');
+
+  pctEl.textContent = rounded + '%';
+  fill.style.width = Math.min(totalBucketPct, 100) + '%';
+  pctEl.className = 'pct-val';
+  warn.className = 'warn-msg';
+
+  if (Math.abs(rounded - 100) <= 1) {
+    pctEl.classList.add('pct-ok');
+    fill.style.background = 'linear-gradient(90deg, #2a6e3f, #4ade80)';
+  } else if (rounded > 100) {
+    pctEl.classList.add('pct-over');
+    fill.style.background = '#e24b4a';
+    warn.textContent = `${rounded - 100}% over — trim some buckets.`;
+    warn.classList.add('show', 'over');
+  } else {
+    pctEl.classList.add('pct-warn');
+    fill.style.background = '#f59e0b';
+    warn.textContent = `${100 - rounded}% unallocated.`;
+    warn.classList.add('show', 'under');
+  }
+}
+
+function saveSettings() {
+  const saved = load();
+  BUCKETS.forEach(b => {
+    saved['pct_' + b.id] = parseFloat(document.getElementById('p-' + b.id).value) || 0;
+  });
+  saved['pct_tax'] = parseFloat(document.getElementById('p-tax').value) || 0;
+  save(saved);
+  const el = document.getElementById('save-confirm');
+  el.textContent = '✓ Settings saved';
+  el.style.color = '#2a6e3f';
+  setTimeout(() => { el.textContent = ''; }, 2500);
+}
+
+renderBuckets();
+calc();
+</script>
+</body>
+</html>
